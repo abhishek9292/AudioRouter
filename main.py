@@ -31,7 +31,7 @@ class AudioRouter:
         
     def setup_gui(self):
         self.root = tk.Tk()
-        self.root.title("Audio Router - Meet Audio Forwarder")
+        self.root.title("Audio Router - Audio Forwarder")
         self.root.geometry("700x650")
         self.root.resizable(True, True)
         
@@ -155,17 +155,17 @@ class AudioRouter:
         
         # Info text
         info_text = """
-Setup for Google Meet Communication:
-1. In Meet: Set Speaker to "VB-Cable Input" and Microphone to your headset mic
+Setup for Route Communication:
+1. In Calling App: Set Speaker to "VB-Cable Input" and Microphone to your headset mic
 2. In this app: Set Input to "VB-Cable Output" (captures Meet's audio)
 3. Set Output 1 to your headphones (you hear the audio)  
 4. Set Output 2 to another VB-Cable or recording device
-5. Your headset mic connects directly to Meet (no feedback loops)
+5. Your headset mic connects directly to Call App (no feedback loops)
 
-This way: Meet → VB-Cable → This App → Your Headphones + Recording Device
-Your Mic → Meet (direct connection, no interference)
+This way: Calling App → VB-Cable → This App → Your Headphones + Recording Device
+Your Mic → Calling App (direct connection, no interference)
 
-Note: Install VB-Cable first. You may need multiple VB-Cables for complex setups.
+Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         """
         
         info_label = ttk.Label(main_frame, text=info_text.strip(), 
