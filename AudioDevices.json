@@ -1,0 +1,13 @@
+{
+  "playback": {
+    "{0.0.0.00000000}.{0224ad94-01f1-4df9-880e-f15f59173b8c}": "Speakers (Steam Streaming Microphone)",
+    "{0.0.0.00000000}.{025ef763-fce2-4a68-a000-7f85364fac9c}": "BenQ GW2283 (NVIDIA High Definition Audio)",
+    "{0.0.0.00000000}.{2386aaca-c961-4763-904c-4f618a2016f1}": "Voicemeeter In 1 (VB-Audio Voicemeeter VAIO)",
+    "{0.0.0.00000000}.{7244f13f-5726-401b-ac54-7454eac37b42}": "Speakers (Steam Streaming Speakers)",
+    "{0.0.0.00000000}.{a16e5f08-436b-4094-9183-ea7300ff628a}": "Voicemeeter In 2 (VB-Audio Voicemeeter VAIO)"
+  },
+  "recording": {
+    "{0.0.1.00000000}.{21fef274-4ab2-47d0-8e73-33a1a54d3d72}": "Stereo Mix (Realtek(R) Audio)",
+    "{0.0.1.00000000}.{27e30737-d615-44dc-b2dd-934e412da9f6}": "Voicemeeter Mic 1 (VB-Audio Voicemeeter VAIO)"
+  }
+}
