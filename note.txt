@@ -11,7 +11,7 @@ pip freeze > requirements.txt
     ```
 - **Build with a custom icon:**
     ```sh
-    pyinstaller --windowed --icon=icon.ico adds-route.py
+    pyinstaller --onefile --windowed --icon=icon.ico --name "3D iRooter" adds-route.py
     ```
 
     pyinstaller --onefile --windowed --add-data "assets;assets" --icon=app.ico --name "MyApp" adds-route.py

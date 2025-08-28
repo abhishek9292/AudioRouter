@@ -44,7 +44,7 @@ class AudioRouter:
         
     def setup_gui(self):
         self.root = tk.Tk()
-        self.root.title("Abc Root")
+        self.root.title("3D iRoot")
         self.root.geometry("700x700")
         self.root.resizable(True, True)
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
@@ -60,7 +60,7 @@ class AudioRouter:
         main_frame.columnconfigure(1, weight=1)
         
         # Title
-        title_label = ttk.Label(main_frame, text="Abc Root", 
+        title_label = ttk.Label(main_frame, text="3D iRoot", 
                                font=('Arial', 16, 'bold'))
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
@@ -242,7 +242,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         )
         
         # Create tray icon
-        self.tray_icon = pystray.Icon("audio_router", image, "Abc Root", menu)
+        self.tray_icon = pystray.Icon("audio_router", image, "3D iRoot", menu)
         
         # Run the tray icon in a separate thread
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
@@ -262,7 +262,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         )
         
         # Create tray icon
-        self.tray_icon = pystray.Icon("audio_router", image, "Abs Root", menu)
+        self.tray_icon = pystray.Icon("audio_router", image, "3D iRoot", menu)
         
         # Run the tray icon in a separate thread
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
