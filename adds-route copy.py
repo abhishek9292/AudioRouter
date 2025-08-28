@@ -5,13 +5,7 @@ from tkinter import ttk, messagebox
 import threading
 import time
 from collections import deque
-import pystray
-from PIL import Image, ImageDraw
-import os 
-import sys
-
 p = pyaudio.PyAudio()
-
 class AudioRouter:
     def __init__(self):
         self.p = pyaudio.PyAudio()
@@ -28,27 +22,18 @@ class AudioRouter:
         self.rate = 44100
         
         # Audio level monitoring
-        self.input_levels = deque(maxlen=50)
         self.output1_levels = deque(maxlen=50)
         self.output2_levels = deque(maxlen=50)
         
-        # Tray icon
-        self.tray_icon = None
-        
-        # Initialize GUI but don't show it initially
+        # Initialize GUI
         self.setup_gui()
         self.refresh_devices()
         
-        # Create and start tray icon
-        self.create_tray_icon()
-        
     def setup_gui(self):
         self.root = tk.Tk()
-        self.root.title("Abc Root")
-        self.root.geometry("700x700")
+        self.root.title("Audio Router - Audio Forwarder")
+        self.root.geometry("700x650")
         self.root.resizable(True, True)
-        self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
-        self.root.withdraw()  # Hide the window initially
         
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
@@ -60,12 +45,12 @@ class AudioRouter:
         main_frame.columnconfigure(1, weight=1)
         
         # Title
-        title_label = ttk.Label(main_frame, text="Abc Root", 
+        title_label = ttk.Label(main_frame, text="Audio Router", 
                                font=('Arial', 16, 'bold'))
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
         # Input device selection
-        ttk.Label(main_frame, text="Input Device (Output):").grid(
+        ttk.Label(main_frame, text="Input Device (VB-Cable Output):").grid(
             row=1, column=0, sticky=tk.W, pady=5)
         self.input_var = tk.StringVar()
         self.input_combo = ttk.Combobox(main_frame, textvariable=self.input_var,
@@ -94,7 +79,7 @@ class AudioRouter:
         output2_frame.columnconfigure(1, weight=1)
         
         self.output2_enabled = tk.BooleanVar(value=True)
-        self.output2_check = ttk.Checkbutton(output2_frame, text="Output 2 (Recording):", 
+        self.output2_check = ttk.Checkbutton(output2_frame, text="Output 2 (Recording Device):", 
                                            variable=self.output2_enabled,
                                            command=self.toggle_output2)
         self.output2_check.grid(row=0, column=0, sticky=tk.W)
@@ -113,7 +98,7 @@ class AudioRouter:
         control_frame = ttk.Frame(main_frame)
         control_frame.grid(row=5, column=0, columnspan=3, pady=20)
         
-        self.apply_btn = ttk.Button(control_frame, text="Start", 
+        self.apply_btn = ttk.Button(control_frame, text="Start Audio Routing", 
                                    command=self.toggle_routing)
         self.apply_btn.pack(side=tk.LEFT, padx=5)
         
@@ -122,33 +107,14 @@ class AudioRouter:
         self.status_label.pack(side=tk.LEFT, padx=20)
         
         # Audio level indicators frame
-        indicator_frame = ttk.LabelFrame(main_frame, text=" Level Indicators", 
+        indicator_frame = ttk.LabelFrame(main_frame, text="Audio Level Indicators", 
                                        padding="10")
         indicator_frame.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E), 
                            pady=20, padx=5)
         
-        # Input level indicator
-        self.input_level_frame = ttk.Frame(indicator_frame)
-        self.input_level_frame.grid(row=0, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
-        self.input_level_frame.columnconfigure(2, weight=1)
-        
-        ttk.Label(self.input_level_frame, text="Input Level:").grid(
-            row=0, column=0, sticky=tk.W)
-        self.input_level_var = tk.StringVar(value="0%")
-        self.input_level_label = ttk.Label(self.input_level_frame, textvariable=self.input_level_var)
-        self.input_level_label.grid(row=0, column=1, sticky=tk.W, padx=10)
-        
-        self.input_progress = ttk.Progressbar(self.input_level_frame, length=250, mode='determinate')
-        self.input_progress.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=10)
-        
-        self.input_status_var = tk.StringVar(value="Inactive")
-        self.input_status_label = ttk.Label(self.input_level_frame, textvariable=self.input_status_var, 
-                                      foreground="red")
-        self.input_status_label.grid(row=0, column=3, padx=10)
-        
         # Output 1 level indicator
         self.level1_frame = ttk.Frame(indicator_frame)
-        self.level1_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        self.level1_frame.grid(row=0, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
         self.level1_frame.columnconfigure(2, weight=1)
         
         ttk.Label(self.level1_frame, text="Output 1 Level:").grid(
@@ -160,14 +126,14 @@ class AudioRouter:
         self.progress1 = ttk.Progressbar(self.level1_frame, length=250, mode='determinate')
         self.progress1.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=10)
         
-        self.status1_var = tk.StringVar(value="Inactive")
+        self.status1_var = tk.StringVar(value="Active")
         self.status1_label = ttk.Label(self.level1_frame, textvariable=self.status1_var, 
-                                      foreground="red")
+                                      foreground="green")
         self.status1_label.grid(row=0, column=3, padx=10)
         
         # Output 2 level indicator
         self.level2_frame = ttk.Frame(indicator_frame)
-        self.level2_frame.grid(row=2, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
+        self.level2_frame.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=5)
         self.level2_frame.columnconfigure(2, weight=1)
         
         ttk.Label(self.level2_frame, text="Output 2 Level:").grid(
@@ -179,9 +145,9 @@ class AudioRouter:
         self.progress2 = ttk.Progressbar(self.level2_frame, length=250, mode='determinate')
         self.progress2.grid(row=0, column=2, sticky=(tk.W, tk.E), padx=10)
         
-        self.status2_var = tk.StringVar(value="Inactive")
+        self.status2_var = tk.StringVar(value="Active")
         self.status2_label = ttk.Label(self.level2_frame, textvariable=self.status2_var, 
-                                      foreground="red")
+                                      foreground="green")
         self.status2_label.grid(row=0, column=3, padx=10)
         
         # Configure indicator frame grid
@@ -190,14 +156,14 @@ class AudioRouter:
         # Info text
         info_text = """
 Setup for Route Communication:
-1. In Abc App: Set Speaker to "VB-Cable Input" and Microphone to your headset mic
-2. In this app: Set Input to "VB-Cable Output" (captures Abc audio)
+1. In Calling App: Set Speaker to "VB-Cable Input" and Microphone to your headset mic
+2. In this app: Set Input to "VB-Cable Output" (captures Meet's audio)
 3. Set Output 1 to your headphones (you hear the audio)  
 4. Set Output 2 to another VB-Cable or recording device
-5. Your headset mic connects directly to Abc App (no feedback loops)
+5. Your headset mic connects directly to Call App (no feedback loops)
 
-This way: Abc App → VB-Cable → This App → Your Headphones + Recording Device
-Your Mic → Abc App (direct connection, no interference)
+This way: Calling App → VB-Cable → This App → Your Headphones + Recording Device
+Your Mic → Calling App (direct connection, no interference)
 
 Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         """
@@ -208,85 +174,6 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         
         # Start level update timer
         self.update_levels()
-   
-    def create_tray_icon(self):
-        """Create system tray icon"""
-        # Try to load icon from file, fall back to generated image
-        icon_path = None
-        
-        # Check if the icon file exists in the same directory as the script
-        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        possible_paths = [ 
-            os.path.join(script_dir, "icon.ico")
-        ]
-        
-        for path in possible_paths:
-            if os.path.exists(path):
-                icon_path = path
-                break
-        
-        if icon_path:
-            # Load from ICO file
-            image = Image.open(icon_path)
-        else:
-            # Create a simple image for the tray icon as fallback
-            image = Image.new('RGB', (16, 16), color='black')
-            dc = ImageDraw.Draw(image)
-            dc.rectangle((4, 4, 12, 12), fill='white')
-        
-        # Create menu
-        menu = pystray.Menu(
-            pystray.MenuItem("Show Window", self.show_window),
-            pystray.MenuItem("Start/Stop ", self.toggle_routing),
-            pystray.MenuItem("Exit", self.quit_application)
-        )
-        
-        # Create tray icon
-        self.tray_icon = pystray.Icon("audio_router", image, "Abc Root", menu)
-        
-        # Run the tray icon in a separate thread
-        threading.Thread(target=self.tray_icon.run, daemon=True).start()
-        
-    def create_tray_iconX(self):
-        """Create system tray icon"""
-        # Create a simple image for the tray icon
-        image = Image.new('RGB', (16, 16), color='black')
-        dc = ImageDraw.Draw(image)
-        dc.rectangle((4, 4, 12, 12), fill='white')
-        
-        # Create menu
-        menu = pystray.Menu(
-            pystray.MenuItem("Show Window", self.show_window),
-            pystray.MenuItem("Start/Stop", self.toggle_routing),
-            pystray.MenuItem("Exit", self.quit_application)
-        )
-        
-        # Create tray icon
-        self.tray_icon = pystray.Icon("audio_router", image, "Abs Root", menu)
-        
-        # Run the tray icon in a separate thread
-        threading.Thread(target=self.tray_icon.run, daemon=True).start()
-    
-    def show_window(self):
-        """Show the application window"""
-        self.root.after(0, self.root.deiconify)
-    
-    def hide_window(self):
-        """Hide the application window"""
-        self.root.withdraw()
-    
-    def quit_application(self):
-        """Quit the application"""
-        self.stop_routing()
-        try:
-            self.p.terminate()
-        except:
-            pass
-        if self.tray_icon:
-            self.tray_icon.stop()
-        self.root.quit()
-        self.root.destroy()
-        os._exit(0)
         
     def toggle_output1(self):
         """Toggle output 1 availability"""
@@ -314,8 +201,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             self.stop_routing()
             # Small delay to ensure clean shutdown
             self.root.after(100, self.start_routing)
-            
-    def is_device_active(self, index):
+    def is_device_active(self,index ):
         try:
             stream = p.open(format=pyaudio.paInt16,
                             channels=1,
@@ -366,6 +252,8 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
                     if(self.is_output_device_active(i)):
                         output_devices.append(device_name)
             
+           
+           
             # Update comboboxes
             self.input_combo['values'] = input_devices
             self.output1_combo['values'] = output_devices
@@ -411,18 +299,15 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         """Main audio processing loop"""
         try:
             while self.is_running:
-                if self.stream_in:
+                if self.stream_in and self.stream_out1 and self.stream_out2:
                     # Read audio data from input
                     try:
                         data = self.stream_in.read(self.chunk, exception_on_overflow=False)
                         
-                        # Calculate input audio level
-                        input_level = self.calculate_audio_level(data)
-                        self.input_levels.append(input_level)
-                        
-                        # Calculate output audio levels (same as input for now)
-                        self.output1_levels.append(input_level)
-                        self.output2_levels.append(input_level)
+                        # Calculate audio levels
+                        level = self.calculate_audio_level(data)
+                        self.output1_levels.append(level)
+                        self.output2_levels.append(level)
                         
                         # Write to outputs based on checkbox status
                         if self.output1_enabled.get() and self.stream_out1 and self.stream_out1.get_write_available() >= self.chunk:
@@ -515,11 +400,11 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             self.audio_thread.start()
             
             # Update UI
-            self.apply_btn.config(text="Stop ")
+            self.apply_btn.config(text="Stop Audio Routing")
             self.status_label.config(text="Status: Running", foreground="green")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to start  routing: {str(e)}")
+            messagebox.showerror("Error", f"Failed to start audio routing: {str(e)}")
             self.stop_routing()
     
     def stop_routing(self):
@@ -532,11 +417,10 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         self.close_streams()
         
         # Update UI
-        self.apply_btn.config(text="Start ")
+        self.apply_btn.config(text="Start Audio Routing")
         self.status_label.config(text="Status: Stopped", foreground="red")
         
         # Clear levels
-        self.input_levels.clear()
         self.output1_levels.clear()
         self.output2_levels.clear()
     
@@ -557,23 +441,6 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
     def update_levels(self):
         """Update audio level indicators"""
         try:
-            # Update input level and status
-            if self.is_running and self.stream_in:
-                if self.input_levels:
-                    avg_input_level = sum(self.input_levels) / len(self.input_levels)
-                    self.input_level_var.set(f"{avg_input_level:.0f}%")
-                    self.input_progress['value'] = avg_input_level
-                else:
-                    self.input_level_var.set("0%")
-                    self.input_progress['value'] = 0
-                self.input_status_var.set("Active")
-                self.input_status_label.config(foreground="green")
-            else:
-                self.input_level_var.set("--")
-                self.input_progress['value'] = 0
-                self.input_status_var.set("Inactive")
-                self.input_status_label.config(foreground="red")
-            
             # Update output 1 level and status
             if self.output1_enabled.get() and self.is_running and self.stream_out1:
                 if self.output1_levels:
@@ -624,7 +491,12 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
     
     def on_closing(self):
         """Handle window close event"""
-        self.hide_window()
+        self.stop_routing()
+        try:
+            self.p.terminate()
+        except:
+            pass
+        self.root.destroy()
     
     def run(self):
         """Start the GUI application"""
