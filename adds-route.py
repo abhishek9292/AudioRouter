@@ -9,9 +9,9 @@ import pystray
 from PIL import Image, ImageDraw
 import os 
 import sys
+import json
 
-p = pyaudio.PyAudio()
-
+p= pyaudio.PyAudio()
 class AudioRouter:
     def __init__(self):
         self.p = pyaudio.PyAudio()
@@ -35,17 +35,66 @@ class AudioRouter:
         # Tray icon
         self.tray_icon = None
         
+        # Config file path
+        self.config_file = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "config.json")
+        
         # Initialize GUI but don't show it initially
         self.setup_gui()
         self.refresh_devices()
+        self.load_config()  # Load saved configuration
         
         # Create and start tray icon
         self.create_tray_icon()
         
+    def load_config(self):
+        """Load configuration from JSON file"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config = json.load(f)
+                
+                # Load device selections
+                if 'input_device' in config:
+                    self.input_var.set(config['input_device'])
+                if 'output1_device' in config:
+                    self.output1_var.set(config['output1_device'])
+                if 'output2_device' in config:
+                    self.output2_var.set(config['output2_device'])
+                
+                # Load checkbox states
+                if 'output1_enabled' in config:
+                    self.output1_enabled.set(config['output1_enabled'])
+                    self.toggle_output1()
+                if 'output2_enabled' in config:
+                    self.output2_enabled.set(config['output2_enabled'])
+                    self.toggle_output2()
+                    
+                print("Configuration loaded successfully")
+        except Exception as e:
+            print(f"Error loading configuration: {e}")
+    
+    def save_config(self):
+        """Save configuration to JSON file"""
+        try:
+            config = {
+                'input_device': self.input_var.get(),
+                'output1_device': self.output1_var.get(),
+                'output2_device': self.output2_var.get(),
+                'output1_enabled': self.output1_enabled.get(),
+                'output2_enabled': self.output2_enabled.get()
+            }
+            
+            with open(self.config_file, 'w') as f:
+                json.dump(config, f, indent=4)
+            
+            print("Configuration saved successfully")
+        except Exception as e:
+            print(f"Error saving configuration: {e}")
+        
     def setup_gui(self):
         self.root = tk.Tk()
         self.root.title("3D iRoot")
-        self.root.geometry("700x700")
+        self.root.geometry("700x500")
         self.root.resizable(True, True)
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         self.root.withdraw()  # Hide the window initially
@@ -60,8 +109,8 @@ class AudioRouter:
         main_frame.columnconfigure(1, weight=1)
         
         # Title
-        title_label = ttk.Label(main_frame, text="3D iRoot", 
-                               font=('Arial', 16, 'bold'))
+        title_label = ttk.Label(main_frame, text="Config", 
+                               font=('Arial', 14, 'bold'))
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
         # Input device selection
@@ -71,6 +120,7 @@ class AudioRouter:
         self.input_combo = ttk.Combobox(main_frame, textvariable=self.input_var,
                                        width=50, state="readonly")
         self.input_combo.grid(row=1, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=5)
+        self.input_combo.bind('<<ComboboxSelected>>', lambda e: self.save_config())
         
         # Output device 1 (Headphones)
         output1_frame = ttk.Frame(main_frame)
@@ -87,6 +137,7 @@ class AudioRouter:
         self.output1_combo = ttk.Combobox(output1_frame, textvariable=self.output1_var,
                                          width=45, state="readonly")
         self.output1_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(10, 0))
+        self.output1_combo.bind('<<ComboboxSelected>>', lambda e: self.save_config())
         
         # Output device 2 (Recording/Other Apps)
         output2_frame = ttk.Frame(main_frame)
@@ -103,6 +154,7 @@ class AudioRouter:
         self.output2_combo = ttk.Combobox(output2_frame, textvariable=self.output2_var,
                                          width=45, state="readonly")
         self.output2_combo.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(10, 0))
+        self.output2_combo.bind('<<ComboboxSelected>>', lambda e: self.save_config())
         
         # Refresh devices button
         refresh_btn = ttk.Button(main_frame, text="Refresh Devices", 
@@ -297,6 +349,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             # If routing is active, restart to apply changes
             if self.is_running:
                 self.restart_routing()
+        self.save_config()  # Save config when checkbox state changes
     
     def toggle_output2(self):
         """Toggle output 2 availability"""
@@ -307,6 +360,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             # If routing is active, restart to apply changes
             if self.is_running:
                 self.restart_routing()
+        self.save_config()  # Save config when checkbox state changes
     
     def restart_routing(self):
         """Restart audio routing with current settings"""
@@ -316,7 +370,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             self.root.after(100, self.start_routing)
             
     def is_device_active(self, index):
-        try:
+        try: 
             stream = p.open(format=pyaudio.paInt16,
                             channels=1,
                             rate=16000,
@@ -353,7 +407,8 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             
             input_devices = []
             output_devices = []
-            
+            if self.p is None:
+                self.p = pyaudio.PyAudio()
             # Get device info
             for i in range(self.p.get_device_count()):
                 device_info = self.p.get_device_info_by_index(i)
@@ -371,23 +426,27 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             self.output1_combo['values'] = output_devices
             self.output2_combo['values'] = output_devices
             
-            # Set default selections if available
-            if input_devices:
+            # Set default selections if available (only if not already set from config)
+            if input_devices and not self.input_var.get():
                 self.input_combo.set(input_devices[0])
             if output_devices:
-                self.output1_combo.set(output_devices[0])
-                if len(output_devices) > 1:
-                    self.output2_combo.set(output_devices[1])
-                else:
-                    self.output2_combo.set(output_devices[0])
+                if not self.output1_var.get():
+                    self.output1_combo.set(output_devices[0])
+                if not self.output2_var.get():
+                    if len(output_devices) > 1:
+                        self.output2_combo.set(output_devices[1])
+                    else:
+                        self.output2_combo.set(output_devices[0])
                     
         except Exception as e:
+            print(f" Exception {e}")
             messagebox.showerror("Error", f"Failed to refresh devices: {str(e)}")
     
     def get_device_index(self, device_string):
         """Extract device index from the device string"""
         if device_string:
-            return int(device_string.split(':')[0])
+            return int(device_string.split(':', 1)[0])
+            # return int(device_string.split(':')[0])
         return None
     
     def calculate_audio_level(self, data):
@@ -397,14 +456,20 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             audio_data = np.frombuffer(data, dtype=np.int16)
             if len(audio_data) == 0:
                 return 0
-            
+            # Convert to float to avoid overflow before squaring
+            audio_data = audio_data.astype(np.float32)
+    
+            # Calculate RMS safely
+            mean_square = np.mean(audio_data ** 2)
+            rms = np.sqrt(mean_square) if mean_square > 0 else 0.0
             # Calculate RMS
-            rms = np.sqrt(np.mean(audio_data**2))
+            # rms = np.sqrt(np.mean(audio_data**2))
             
             # Convert to percentage (normalize to reasonable range)
             level = min(100, (rms / 3000) * 100)  # Adjust divisor as needed
             return level
-        except:
+        except Exception as e:
+            print(f"Audio calculate_audio_level  error: {e}")
             return 0
     
     def audio_callback(self):
@@ -435,6 +500,7 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
                         print(f"Audio processing error: {e}")
                         time.sleep(0.001)
                 else:
+                    print(f"if self.stream_in is false, not streaming")
                     time.sleep(0.01)
                     
         except Exception as e:
@@ -446,11 +512,14 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
         if not self.is_running:
             self.start_routing()
         else:
-            self.stop_routing()
+            self.stop_routing() 
     
     def start_routing(self):
         """Start audio routing"""
         try:
+            # NEW: create a fresh host after a stop
+            if self.p is None:
+                self.p = pyaudio.PyAudio()
             # Get device indices
             input_idx = self.get_device_index(self.input_var.get())
             
@@ -530,7 +599,13 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             self.audio_thread.join(timeout=1)
         
         self.close_streams()
-        
+        # NEW: fully reset the host so device switches are honored
+        try:
+            if self.p:
+                self.p.terminate()
+        except Exception:
+            pass
+        self.p = None
         # Update UI
         self.apply_btn.config(text="Start ")
         self.status_label.config(text="Status: Stopped", foreground="red")
@@ -576,15 +651,31 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             
             # Update output 1 level and status
             if self.output1_enabled.get() and self.is_running and self.stream_out1:
-                if self.output1_levels:
+                if self.output1_levels and any(level > 0 for level in list(self.output1_levels)[-10:]):  # Check last 10 readings
                     avg_level1 = sum(self.output1_levels) / len(self.output1_levels)
                     self.level1_var.set(f"{avg_level1:.0f}%")
                     self.progress1['value'] = avg_level1
+                    self.status1_var.set("Active")
+                    self.status1_label.config(foreground="green")
                 else:
-                    self.level1_var.set("0%")
-                    self.progress1['value'] = 0
-                self.status1_var.set("Active")
-                self.status1_label.config(foreground="green")
+                    # Show input level but with warning status
+                    if self.input_levels:
+                        avg_input = sum(self.input_levels) / len(self.input_levels)
+                        if avg_input > 1:  # There's input audio but no output
+                            self.level1_var.set(f"({avg_input:.0f}%)")
+                            self.progress1['value'] = avg_input
+                            self.status1_var.set("No Output")
+                            self.status1_label.config(foreground="orange")
+                        else:
+                            self.level1_var.set("0%")
+                            self.progress1['value'] = 0
+                            self.status1_var.set("Active")
+                            self.status1_label.config(foreground="green")
+                    else:
+                        self.level1_var.set("0%")
+                        self.progress1['value'] = 0
+                        self.status1_var.set("Active")
+                        self.status1_label.config(foreground="green")
             else:
                 self.level1_var.set("--")
                 self.progress1['value'] = 0
@@ -597,15 +688,31 @@ Note: Install VB-Cable first. You may need 2 VB-Cables for setups.
             
             # Update output 2 level and status
             if self.output2_enabled.get() and self.is_running and self.stream_out2:
-                if self.output2_levels:
+                if self.output2_levels and any(level > 0 for level in list(self.output2_levels)[-10:]):  # Check last 10 readings
                     avg_level2 = sum(self.output2_levels) / len(self.output2_levels)
                     self.level2_var.set(f"{avg_level2:.0f}%")
                     self.progress2['value'] = avg_level2
+                    self.status2_var.set("Active")
+                    self.status2_label.config(foreground="green")
                 else:
-                    self.level2_var.set("0%")
-                    self.progress2['value'] = 0
-                self.status2_var.set("Active")
-                self.status2_label.config(foreground="green")
+                    # Show input level but with warning status
+                    if self.input_levels:
+                        avg_input = sum(self.input_levels) / len(self.input_levels)
+                        if avg_input > 1:  # There's input audio but no output
+                            self.level2_var.set(f"({avg_input:.0f}%)")
+                            self.progress2['value'] = avg_input
+                            self.status2_var.set("No Output")
+                            self.status2_label.config(foreground="orange")
+                        else:
+                            self.level2_var.set("0%")
+                            self.progress2['value'] = 0
+                            self.status2_var.set("Active")
+                            self.status2_label.config(foreground="green")
+                    else:
+                        self.level2_var.set("0%")
+                        self.progress2['value'] = 0
+                        self.status2_var.set("Active")
+                        self.status2_label.config(foreground="green")
             else:
                 self.level2_var.set("--")
                 self.progress2['value'] = 0

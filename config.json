@@ -1,0 +1,7 @@
+{
+    "input_device": "1: CABLE-A Output (VB-Audio Cable  (8in/0out)",
+    "output1_device": "6: BenQ GW2283 (NVIDIA High Defini (0in/2out)",
+    "output2_device": "5: CABLE-A Input (VB-Audio Cable A (0in/8out)",
+    "output1_enabled": true,
+    "output2_enabled": false
+}
